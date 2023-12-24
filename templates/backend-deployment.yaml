@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.deployment_name }}
+  namespace: "{{ .Values.namespace }}"
+  {{- with .Values.backend.deployment_labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    {{- with .Values.backend.deployment_selector_labels }}
+    matchLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  template:
+    metadata:
+      {{- with .Values.backend.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.deployment_selector_labels }}
+      labels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.backend.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.backend.serviceAccount.name }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Values.backend.container_name }}
+          securityContext:
+            {{- toYaml .Values.backend.securityContext | nindent 12 }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.backend.ConfigMap.name }}
+            - secretRef:
+                name: {{ .Values.backend.secrets.name  }}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

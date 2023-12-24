@@ -1,0 +1,136 @@
+# Default values for monjz-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+namespace : monjz
+# backend config
+backend:
+  replicaCount: 1
+  container_name: monjz-backend
+  deployment_name: monjz-backend-deployment
+  deployment_labels:
+    app: monjz-backend
+  deployment_selector_labels:
+    app: monjz-backend
+  ConfigMap:
+    create: true
+    name: monjz-backend-configmap
+    data:
+      PSQL_DB_NAME: "monjzdb"
+      APP_URL: "localhost"
+      PORT: "3000"
+      NODE_ENV: "development"
+      
+  secrets:
+    create: true
+    name: monjz-backend-secret
+    data:
+      PSQL_PASSWORD: ""
+      PSQL_USERNAME: ""
+      PSQL_CONNECTION_NAME: ""
+  image:
+    repository: gcr.io/monjz-project/monjz-backend
+    pullPolicy: Always
+    tag: "latest"
+    env: []
+
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+
+  serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # Annotations to add to the service account
+    annotations:
+      iam.gke.io/gcp-service-account: "sa@project-id.iam.gserviceaccount.com"
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: "monjz-backend-sa-name"
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  service:
+    type: ClusterIP
+    port: 3000
+    name: monjz-backend-svc
+
+
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  resources:
+    limits:
+      cpu: 1500m
+      ephemeral-storage: 3Gi
+      memory: 4Gi
+    requests:
+      cpu: 1500m
+      ephemeral-storage: 3Gi
+      memory: 4Gi
+
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+# ingress config
+ingress:
+  enabled: true
+  tls_frontend_crt: ""
+  tls_frontend_key: ""
+  tls_frontend_secret_name: tls-frontend-secret
+  tls_backend_crt: ""
+  tls_backend_key: ""
+  tls_backend_secret_name:  tls-backend-secret
+  name: monjz-ingress-svc
+  className: ""
+  annotations: 
+    kubernetes.io/ingress.allow-http: "false"
+    kubernetes.io/ingress.global-static-ip-name: "monjz-elb-ip"
+    networking.gke.io/v1beta1.FrontendConfig: monjz-app-frontend
+  default_backend:
+    service:
+      name: monjz-backend-svc
+      port:
+        number: 3000
+  hosts:
+  - host: staging-monjz.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: monjz-backend-svc
+            port:
+              number: 3001
+        path: /*
+        pathType: ImplementationSpecific
+  tls:
+    - secretName: "tls-backend-secret"
+      hosts:
+      - staging-monjz.com
+backendConfig:
+  frontend:
+    name: monjz-frontend-backendconfig
+  backend:
+    name: monjz-backend-backendconfig

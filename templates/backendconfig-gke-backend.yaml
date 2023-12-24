@@ -1,0 +1,15 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: "{{ .Values.backendConfig.backend.name }}"
+  namespace: "{{ .Values.namespace }}"
+spec:
+
+  healthCheck:
+    checkIntervalSec: 20
+    timeoutSec: 15
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    type: HTTP
+    requestPath: /
+    port: 3000
